@@ -1,5 +1,7 @@
 import base64
 import datetime
+import os.path
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Dict, Optional, List
@@ -26,7 +28,7 @@ def create_plot(currency: str, data_raw: Dict) -> Optional[CurrencyInfo]:
     the minimum value of the currency, and a base64-encoded string representation of a plot image.
 
     :param currency:str: Specify which currency to plot
-    :param data:Dict: Store the data that is returned by the api
+    :param data_raw:Dict: Store the data that is returned by the api
     :return: The CurrencyInfo dataclass
     """
     img = BytesIO()
@@ -71,4 +73,7 @@ def save_pdf(currency_data: List[Optional[CurrencyInfo]]):
     all_currencies = "_".join(config.CURRENCY_PAIRS).replace('/', '')
     html_out = template.render(context)
     output_path = f'{all_currencies}_for_{datetime.datetime.now().date()}.pdf'
-    pdfkit.from_string(html_out, output_path=output_path)
+    pdfkit.from_string(
+        html_out,
+        output_path=os.path.join(config.ROOT_DIR, output_path)
+    )
