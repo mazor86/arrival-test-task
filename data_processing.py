@@ -31,6 +31,8 @@ def create_plot(currency: str, data_raw: Dict) -> Optional[CurrencyInfo]:
     """
     img = BytesIO()
     data = list(filter(None, data_raw))
+    if not data:
+        return None
     df = pd.DataFrame(data)
     df.columns = ['date', currency]
     plt.rcParams["figure.autolayout"] = True
