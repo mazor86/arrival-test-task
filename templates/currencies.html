@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>Currencies from {{ from_date }} to {{ today }}</h1>
+    {% for cur in currencies_info %}
+    {% if cur %}
+    <h2>{{ cur.currency|capitalize}}</h2>
+    <img src="data:image/png;base64, {{ cur.image }}">
+    <ul>
+        <li>Min - {{ cur.min_cur }}</li>
+        <li>Max - {{ cur.max_cur }}</li>
+        <li>Avg - {{ "%.6f"|format(cur.average_cur) }}</li>
+    </ul>
+    {% else %}
+    <h2>{{ currency_pairs[loop.index0] }} don't available</h2>
+    {% endif %}
+    {% endfor %}
+</body>
+</html>
