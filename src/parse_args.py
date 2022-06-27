@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import sys
+from src import settings
 
 sys.path.append('..')
 import config
@@ -10,7 +11,7 @@ def currency_checker(pair):
     currencies = pair.split('/')
     if (
             len(currencies) != 2
-            or any(cur not in config.POSSIBLE_CURRENCIES for cur in currencies)
+            or any(cur not in settings.POSSIBLE_CURRENCIES for cur in currencies)
     ):
         raise argparse.ArgumentTypeError('Incorrect currency')
     return pair
@@ -28,13 +29,13 @@ def period_checker(period):
 
 def date_checker(date_string):
     try:
-        date = datetime.datetime.strptime(date_string, config.DATE_FORMAT)
+        date = datetime.datetime.strptime(date_string, settings.DATE_FORMAT)
     except ValueError:
         raise argparse.ArgumentTypeError('Wrong date format')
     if date > datetime.datetime.now():
         raise argparse.ArgumentTypeError('The specified date is longer than the current one')
     # Double conversion is used to avoid 1-digit day/month error like 2020-2-1 instead 2020-02-01
-    return date.strftime(config.DATE_FORMAT)
+    return date.strftime(settings.DATE_FORMAT)
 
 
 def parse_args():
@@ -45,20 +46,20 @@ def parse_args():
         '''
     )
     parser.add_argument(
-        '-c', '--currencies',
+        f'--{settings.CURRENCY_PARAMETER_NAME}',
         type=currency_checker,
         nargs='+',
         default=config.CURRENCY_PAIRS,
         help='currency pairs for the report, format of pair "cur1/cur2"'
     )
     parser.add_argument(
-        '-p', '--period',
+        f'--{settings.PERIOD_PARAMETER_NAME}',
         type=period_checker,
         default=config.PERIOD,
         help='number of days for the report'
     )
     parser.add_argument(
-        '-d', '--date',
+        f'--{settings.DATE_PARAMETER_NAME}',
         type=date_checker,
         default=config.DATE,
         help='date of the report'
