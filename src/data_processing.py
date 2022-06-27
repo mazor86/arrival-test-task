@@ -1,15 +1,15 @@
 import base64
 import datetime
 import os.path
-
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from dataclasses import dataclass
 from io import BytesIO
 import pdfkit
 from jinja2 import Environment, FileSystemLoader
-import config
+
+from src import settings
 
 
 @dataclass
@@ -21,25 +21,23 @@ class CurrencyInfo:
     image: str
 
 
-def create_plot(currency: str, data_raw: Dict) -> Optional[CurrencyInfo]:
+def create_plot(currency_pair: Tuple, data: List) -> Optional[CurrencyInfo]:
     """
     The create_plot function takes a currency and data as arguments.
     It returns an object of type CurrencyInfo, which contains the maximum value of the currency,
     the minimum value of the currency, and a base64-encoded string representation of a plot image.
 
-    :param currency:str: Specify which currency to plot
-    :param data_raw:Dict: Store the data that is returned by the api
+    :param currency_pair:str: Specify which currency to plot
+    :param data:Dict: Store the data that is returned by the api
     :return: The CurrencyInfo dataclass
     """
     img = BytesIO()
-    data = list(filter(None, data_raw))
     if not data:
         return None
-    df = pd.DataFrame(data)
-    df.columns = ['date', currency]
+    df = pd.DataFrame(data).sort_values(by='date')
     plt.rcParams["figure.autolayout"] = True
-    plt.title(f'{currency.title()} from {df.iloc[0][ "date"]} to {df.iloc[-1][ "date"]}')
-    plt.plot(df['date'], df[currency], 'bo-')
+    plt.title(f'{"/".join(currency_pair)} from {df.iloc[0]["date"]} to {df.iloc[-1]["date"]}')
+    plt.plot(df['date'], df['value'], 'bo-')
     plt.xticks(rotation='vertical')
     plt.grid()
     plt.savefig(img, format='png')
@@ -48,32 +46,40 @@ def create_plot(currency: str, data_raw: Dict) -> Optional[CurrencyInfo]:
     plot_url = base64.b64encode(img.getvalue()).decode('utf8')
 
     return CurrencyInfo(
-        currency=currency,
-        max_cur=df[currency].max(),
-        min_cur=df[currency].min(),
-        average_cur=df[currency].mean(),
+        currency='/'.join(currency_pair),
+        max_cur=df['value'].max(),
+        min_cur=df['value'].min(),
+        average_cur=df['value'].mean(),
         image=plot_url
     )
 
 
-def save_pdf(currency_data: List[Optional[CurrencyInfo]]):
+def save_pdf(currency_data: List[Optional[CurrencyInfo]], args: Dict):
     """
     The save_pdf function saves the currency data to a PDF file.
 
-    :param currency_data:List[Optional[CurrencyInfo]]: Pass the list of currency information to the template
+    :param currency_data:List[Optional[CurrencyInfo]]: Pass the currency data to the template
+    :param args:Dict: Pass the args parameter
     """
-    env = Environment(loader=FileSystemLoader(config.TEMPLATE_DIR))
-    template = env.get_template(config.HTML_TEMPLATE)
+    env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
+    template = env.get_template(settings.HTML_TEMPLATE)
+
+    date_string = args[settings.DATE_PARAMETER_NAME]
+    if date_string is None:
+        date = datetime.date.today()
+    else:
+        date = datetime.datetime.strptime(date_string, settings.DATE_FORMAT).date()
+
     context = {
         'currencies_info': currency_data,
-        'currency_pairs': config.CURRENCY_PAIRS,
-        'from_date': datetime.date.today() - datetime.timedelta(config.PERIOD),
-        'today': datetime.date.today()
+        'currency_pairs': args[settings.CURRENCY_PARAMETER_NAME],
+        'from_date': date - datetime.timedelta(args[settings.PERIOD_PARAMETER_NAME]),
+        'today': date
     }
-    all_currencies = "_".join(config.CURRENCY_PAIRS).replace('/', '')
+    all_currencies = "_".join(args[settings.CURRENCY_PARAMETER_NAME]).replace('/', '')
     html_out = template.render(context)
-    output_path = f'{all_currencies}_for_{datetime.datetime.now().date()}.pdf'
+    output_path = f'{all_currencies}_for_{date}.pdf'
     pdfkit.from_string(
         html_out,
-        output_path=os.path.join(config.ROOT_DIR, output_path)
+        output_path=os.path.join(settings.BASE_DIR, output_path)
     )

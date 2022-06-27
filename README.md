@@ -21,3 +21,8 @@ The file `config.py` consist settings for the script. You can change currency pa
 <br>
 Run the program with command:<br>
 `python3 save_currencies_to_pdf.py`
+<br>
+<br>
+Also you could pass command line arguments to script.
+For more information use:<br>
+`python3 save_currencies_to_pdf.py --help`
